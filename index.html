@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Side Hustle Planner</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .ai-response {
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+        .ai-response b {
+            color: #4F46E5;
+            font-weight: 600;
+        }
+    </style>
+    <script>
+        function formatGeminiResponse(text) {
+    text = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+    text = text.replace(/\*(.*?)\*/g, '<b>$1</b>');
+    text = text.replace(/##(.*?)##/g, '<b>$1</b>');
+
+    text = text.split('\n').map(line => {
+        line = line.trim();
+        if (line.startsWith('•') || line.startsWith('-')) {
+            return `<div class="ml-4">• ${line.slice(1).trim()}</div>`;
+        }
+        if (/^\d+\./.test(line)) {
+            return `<div class="ml-4">${line}</div>`;
+        }
+        return line;
+    }).join('\n');
+
+    return text;
+}
+
+        window.__cb__zybTrackerStatisticsAction = function() {};
+    </script>
+</head>
+<body class="bg-gray-100">
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <span class="text-xl font-bold text-indigo-600">AI Side Hustle Planner</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div id="errorAlert" class="hidden fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+        <span class="block sm:inline" id="errorMessage"></span>
+        <button class="absolute top-0 right-0 px-4 py-3" onclick="document.getElementById('errorAlert').classList.add('hidden')">
+            <span class="text-red-500">&times;</span>
+        </button>
+    </div>
+
+    <div id="loadingSpinner" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
+        <div class="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-indigo-500"></div>
+    </div>
+
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div class="bg-white shadow rounded-lg p-6 mb-6">
+            <h2 class="text-2xl font-bold mb-4">Your Profile</h2>
+            <form id="profileForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Skills (comma-separated)</label>
+                    <input type="text" id="skills" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Interests (comma-separated)</label>
+                    <input type="text" id="interests" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Experience Level</label>
+                    <select id="experience" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="expert">Expert</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Desired Monthly Income ($)</label>
+                    <input type="number" id="income" required min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                </div>
+                <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">
+                    Update Profile
+                </button>
+            </form>
+        </div>
+
+        <div class="bg-white shadow rounded-lg p-6 mb-6">
+            <h2 class="text-2xl font-bold mb-4">Personalized Recommendations</h2>
+            <div id="recommendations" class="prose max-w-none"></div>
+        </div>
+
+        <div class="bg-white shadow rounded-lg p-6 mb-6">
+            <h2 class="text-2xl font-bold mb-4">Market Analysis</h2>
+            <div id="marketAnalysis" class="prose max-w-none"></div>
+        </div>
+
+        <div class="bg-white shadow rounded-lg p-6 mb-6">
+            <h2 class="text-2xl font-bold mb-4">Schedule Optimization</h2>
+            <form id="scheduleForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Main Job Hours per Day</label>
+                    <input type="number" id="mainJobHours" required min="0" max="24" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Available Hours for Side Hustles per Day</label>
+                    <input type="number" id="availableHours" required min="0" max="24" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Preferred Work Times</label>
+                    <div class="mt-2 space-y-2">
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" class="form-checkbox text-indigo-600" value="morning">
+                            <span class="ml-2">Morning</span>
+                        </label>
+                        <label class="inline-flex items-center ml-4">
+                            <input type="checkbox" class="form-checkbox text-indigo-600" value="afternoon">
+                            <span class="ml-2">Afternoon</span>
+                        </label>
+                        <label class="inline-flex items-center ml-4">
+                            <input type="checkbox" class="form-checkbox text-indigo-600" value="evening">
+                            <span class="ml-2">Evening</span>
+                        </label>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Gig Commitments</label>
+                    <div id="gigCommitments" class="space-y-2">
+                        <div class="gig-entry border p-2 rounded">
+                            <input type="text" placeholder="Gig Name" class="gig-name mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <input type="number" placeholder="Hours per Week" class="gig-hours mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <select class="gig-flexibility mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <option value="high">High Flexibility</option>
+                                <option value="medium">Medium Flexibility</option>
+                                <option value="low">Low Flexibility</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="button" onclick="addGigEntry()" class="mt-2 text-indigo-600 hover:text-indigo-800">
+                        <i class="fas fa-plus"></i> Add Another Gig
+                    </button>
+                </div>
+                <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">
+                    Optimize Schedule
+                </button>
+            </form>
+            <div id="scheduleOptimization" class="mt-6 prose max-w-none"></div>
+        </div>
+    </main>
+
+    <script>
+        function showError(message) {
+            const errorAlert = document.getElementById('errorAlert');
+            const errorMessage = document.getElementById('errorMessage');
+            errorMessage.textContent = message;
+            errorAlert.classList.remove('hidden');
+            setTimeout(() => {
+                errorAlert.classList.add('hidden');
+            }, 5000);
+        }
+
+        function showLoading() {
+            document.getElementById('loadingSpinner').classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingSpinner').classList.add('hidden');
+        }
+
+        async function handleAPICall(url, data) {
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'An error occurred');
+                }
+
+                return await response.json();
+            } catch (error) {
+                throw new Error(error.message || 'An error occurred');
+            }
+        }
+
+        document.getElementById('profileForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showLoading();
+            try {
+                const profile = {
+                    skills: document.getElementById('skills').value.split(',').map(s => s.trim()),
+                    interests: document.getElementById('interests').value.split(',').map(s => s.trim()),
+                    experience_level: document.getElementById('experience').value,
+                    preferred_income: parseFloat(document.getElementById('income').value)
+                };
+                const profileData = await handleAPICall('/api/profile', profile);
+                document.getElementById('recommendations').innerHTML = `<div class="ai-response">${formatGeminiResponse(profileData.recommendations)}</div>`;
+                const marketData = await handleAPICall('/api/analyze-market', { skills: profile.skills });
+                document.getElementById('marketAnalysis').innerHTML = `<div class="ai-response">${formatGeminiResponse(marketData.market_analysis)}</div>`;
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                hideLoading();
+            }
+        });
+
+        function addGigEntry() {
+            const gigCommitments = document.getElementById('gigCommitments');
+            const newEntry = document.createElement('div');
+            newEntry.className = 'gig-entry border p-2 rounded mt-2';
+            newEntry.innerHTML = `
+                <input type="text" placeholder="Gig Name" class="gig-name mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                <input type="number" placeholder="Hours per Week" class="gig-hours mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                <select class="gig-flexibility mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    <option value="high">High Flexibility</option>
+                    <option value="medium">Medium Flexibility</option>
+                    <option value="low">Low Flexibility</option>
+                </select>
+                <button type="button" onclick="this.parentElement.remove()" class="mt-2 text-red-600 hover:text-red-800">
+                    <i class="fas fa-trash"></i> Remove
+                </button>
+            `;
+            gigCommitments.appendChild(newEntry);
+        }
+
+        document.getElementById('scheduleForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showLoading();
+            try {
+                const preferredWorkTimes = Array.from(document.querySelectorAll('input[type="checkbox"]:checked'))
+                    .map(checkbox => checkbox.value);
+
+                const gigCommitments = Array.from(document.querySelectorAll('.gig-entry')).map(entry => ({
+                    gig_name: entry.querySelector('.gig-name').value,
+                    hours_per_week: parseInt(entry.querySelector('.gig-hours').value),
+                    deadline_flexibility: entry.querySelector('.gig-flexibility').value
+                }));
+
+                const scheduleData = {
+                    main_job_hours: parseInt(document.getElementById('mainJobHours').value),
+                    available_hours: parseInt(document.getElementById('availableHours').value),
+                    preferred_work_times: preferredWorkTimes,
+                    gig_commitments: gigCommitments
+                };
+
+                const optimizationData = await handleAPICall('/api/optimize-schedule', scheduleData);
+                document.getElementById('scheduleOptimization').innerHTML = 
+                    `<div class="ai-response">${formatGeminiResponse(optimizationData.schedule_optimization)}</div>`;
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                hideLoading();
+            }
+        });
+    </script>
+</body>
+</html>
